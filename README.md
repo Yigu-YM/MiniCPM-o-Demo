@@ -141,7 +141,7 @@ python -m venv .venv/base
 source .venv/base/bin/activate
 
 # Install PyTorch
-pip install "torch==2.8.0" "torchaudio==2.8.0"
+pip install --index-url https://download.pytorch.org/whl/cu128 "torch==2.11.0+cu128" "torchaudio==2.11.0+cu128"
 
 # Install the remaining dependencies
 pip install -r requirements.txt

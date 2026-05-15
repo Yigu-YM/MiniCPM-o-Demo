@@ -26,6 +26,9 @@ PYTHON_BIN="${VENV_DIR}/bin/python"
 PYTHON="${PYTHON:-python3.10}"
 MAX_JOBS="${MAX_JOBS:-$(nproc 2>/dev/null || echo 8)}"
 FLASH_ATTN_VERSION=">=2.7.1,<=2.8.2"  # Officially recommended version range
+PYTORCH_INDEX_URL="${PYTORCH_INDEX_URL:-https://download.pytorch.org/whl/cu128}"
+TORCH_VERSION="${TORCH_VERSION:-2.11.0+cu128}"
+TORCHAUDIO_VERSION="${TORCHAUDIO_VERSION:-2.11.0+cu128}"
 
 # ============ Colored Output ============
 
@@ -53,23 +56,29 @@ else
     PYTHON_VERSION=$("${PYTHON}" -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
     info "Using Python ${PYTHON_VERSION} (${PYTHON})"
 
-    "${PYTHON}" -m venv "${VENV_DIR}"
+    "${PYTHON}" -m venv --system-site-packages "${VENV_DIR}"
     info "Virtual environment created successfully"
 fi
 
 ${PIP} install --upgrade pip -q
 
+if ! ${PYTHON_BIN} -c "import decord" 2>/dev/null; then
+    error "decord is not visible inside ${VENV_DIR}. Activate the conda env that has decord installed, then recreate the venv with --system-site-packages."
+    error "Example: conda activate minicpm-omni && rm -rf ${VENV_DIR} && bash install.sh"
+    exit 1
+fi
+
 # ============ Step 2: Install PyTorch ============
 
 info "Step 2/4: Installing PyTorch + torchaudio"
 
-# Check if already installed (skip redundant installation)
-if ${PYTHON_BIN} -c "import torch; print(torch.__version__)" 2>/dev/null | grep -q "2.8"; then
+# Check if already installed with CUDA support (skip redundant installation)
+if ${PYTHON_BIN} -c "import torch, sys; sys.exit(0 if torch.cuda.is_available() and torch.version.cuda else 1)" 2>/dev/null; then
     TORCH_VER=$(${PYTHON_BIN} -c "import torch; print(torch.__version__)")
     CUDA_VER=$(${PYTHON_BIN} -c "import torch; print(torch.version.cuda)")
-    info "PyTorch already installed: ${TORCH_VER} (CUDA ${CUDA_VER}), skipping"
+    info "PyTorch already installed with CUDA support: ${TORCH_VER} (CUDA ${CUDA_VER}), skipping"
 else
-    ${PIP} install "torch==2.8.0" "torchaudio==2.8.0"
+    ${PIP} install --index-url "${PYTORCH_INDEX_URL}" "torch==${TORCH_VERSION}" "torchaudio==${TORCHAUDIO_VERSION}"
     TORCH_VER=$(${PYTHON_BIN} -c "import torch; print(torch.__version__)")
     CUDA_VER=$(${PYTHON_BIN} -c "import torch; print(torch.version.cuda)")
     info "PyTorch installed successfully: ${TORCH_VER} (CUDA ${CUDA_VER})"

@@ -1,8 +1,8 @@
 FROM nvidia/cuda:12.8.1-devel-ubuntu22.04
 
 ARG PYTHON_VERSION=3.10
-ARG TORCH_VERSION=2.8.0
-ARG TORCHAUDIO_VERSION=2.8.0
+ARG TORCH_VERSION=2.11.0+cu128
+ARG TORCHAUDIO_VERSION=2.11.0+cu128
 ARG DEBIAN_FRONTEND=noninteractive
 
 # ============ System dependencies ============
@@ -25,8 +25,9 @@ RUN python -m pip install --no-cache-dir --upgrade pip setuptools wheel
 # ============ PyTorch (CUDA 12.8) ============
 
 RUN pip install --no-cache-dir \
-        "torch==${TORCH_VERSION}" \
-        "torchaudio==${TORCHAUDIO_VERSION}"
+    --index-url https://download.pytorch.org/whl/cu128 \
+    "torch==${TORCH_VERSION}" \
+    "torchaudio==${TORCHAUDIO_VERSION}"
 
 # ============ Python dependencies ============
 
